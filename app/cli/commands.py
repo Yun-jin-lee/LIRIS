@@ -1,3 +1,7 @@
+from app.adapters.bittorrent_probe import run_infohash_probe, run_magnet_probe
+from app.adapters.jackett_client import run_keyword_search
+from app.core.router import route_probe_input, route_search_input
+from app.reporting.text_reporter import print_adapter_result, print_route_decision
 from app.utils.validators import (
     extract_btih_from_magnet,
     is_valid_infohash,
@@ -14,10 +18,15 @@ def run_probe_command(args) -> int:
             print("[ERROR] Invalid infohash. Expected 40 hexadecimal characters.")
             return 1
 
-        print("[OK] Input type: infohash")
-        print(f"[OK] Value: {args.infohash}")
-        print("[OK] Adapter selected: bittorrent_probe")
-        print("[INFO] Network probing not implemented yet.")
+        decision = route_probe_input(infohash=args.infohash)
+        print_route_decision(
+            input_type=decision.input_type,
+            adapter_name=decision.adapter_name,
+            reason=decision.reason,
+        )
+
+        result = run_infohash_probe(args.infohash)
+        print_adapter_result(result)
         return 0
 
     if args.magnet:
@@ -26,13 +35,16 @@ def run_probe_command(args) -> int:
             return 1
 
         btih = extract_btih_from_magnet(args.magnet)
+        decision = route_probe_input(magnet=args.magnet)
 
-        print("[OK] Input type: magnet")
-        print(f"[OK] Value: {args.magnet}")
-        if btih:
-            print(f"[OK] Extracted btih: {btih}")
-        print("[OK] Adapter selected: bittorrent_probe")
-        print("[INFO] Network probing not implemented yet.")
+        print_route_decision(
+            input_type=decision.input_type,
+            adapter_name=decision.adapter_name,
+            reason=decision.reason,
+        )
+
+        result = run_magnet_probe(args.magnet, btih=btih)
+        print_adapter_result(result)
         return 0
 
     print("[ERROR] No probe input provided.")
@@ -49,8 +61,13 @@ def run_search_command(args) -> int:
         print("[ERROR] Keyword cannot be empty.")
         return 1
 
-    print("[OK] Input type: keyword")
-    print(f"[OK] Keyword: {keyword}")
-    print("[OK] Adapter selected: jackett_client")
-    print("[INFO] Search execution not implemented yet.")
+    decision = route_search_input(keyword=keyword)
+    print_route_decision(
+        input_type=decision.input_type,
+        adapter_name=decision.adapter_name,
+        reason=decision.reason,
+    )
+
+    result = run_keyword_search(keyword)
+    print_adapter_result(result)
     return 0
