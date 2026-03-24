@@ -82,4 +82,66 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional path to save the browse result as a JSON file.",
     )
 
+    # websearch
+    websearch_parser = subparsers.add_parser(
+        "websearch",
+        help="Build a provider-specific web search request and manual search URL.",
+    )
+    websearch_parser.add_argument(
+        "--provider",
+        type=str,
+        required=True,
+        choices=["google", "yandex", "baidu"],
+        help="Search provider to target.",
+    )
+    websearch_parser.add_argument(
+        "--keyword",
+        type=str,
+        required=True,
+        help="Main search keyword.",
+    )
+    websearch_parser.add_argument(
+        "--use-case",
+        type=str,
+        choices=["apk", "documents", "images", "leaks"],
+        help="Optional predefined search use case.",
+    )
+    websearch_parser.add_argument(
+        "--site",
+        type=str,
+        help="Optional site/domain restriction.",
+    )
+    websearch_parser.add_argument(
+        "--filetype",
+        type=str,
+        help="Optional file type restriction.",
+    )
+    websearch_parser.add_argument(
+        "--exact-phrase",
+        type=str,
+        help="Optional exact phrase.",
+    )
+    websearch_parser.add_argument(
+        "--exclude",
+        nargs="*",
+        default=[],
+        help="Optional terms to exclude.",
+    )
+    websearch_parser.add_argument(
+        "--add",
+        nargs="*",
+        default=[],
+        help="Optional additional terms to include.",
+    )
+    websearch_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the provider result as JSON.",
+    )
+    websearch_parser.add_argument(
+        "--output",
+        type=str,
+        help="Optional path to save the result as a JSON file.",
+    )
+
     return parser

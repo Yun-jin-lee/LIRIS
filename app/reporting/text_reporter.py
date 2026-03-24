@@ -51,6 +51,9 @@ def print_adapter_result(result: dict) -> None:
     if result.get("proxy"):
         print(f"[INFO] Proxy: {result.get('proxy')}")
 
+    if result.get("use_tor") is not None:
+        print(f"[INFO] Use Tor: {result.get('use_tor')}")
+
     if result.get("prepared_command"):
         print("[INFO] Prepared command:")
         print(" ".join(result.get("prepared_command")))
@@ -65,3 +68,18 @@ def print_adapter_result(result: dict) -> None:
     if result.get("stderr_preview"):
         print("[INFO] STDERR preview:")
         print(result.get("stderr_preview"))
+
+    if result.get("provider"):
+        print(f"[INFO] Provider: {result.get('provider')}")
+
+    if result.get("use_case") is not None:
+        print(f"[INFO] Use case: {result.get('use_case')}")
+
+    if result.get("query"):
+        print(f"[INFO] Built query: {result.get('query')}")
+
+    if result.get("manual_search_url"):
+        print(f"[INFO] Manual search URL: {result.get('manual_search_url')}")
+
+    if result.get("filters"):
+        print(f"[INFO] Filters: {result.get('filters')}")

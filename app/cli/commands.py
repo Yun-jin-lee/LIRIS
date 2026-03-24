@@ -1,7 +1,17 @@
+from app.adapters.baidu_search_client import run_baidu_search
 from app.adapters.bittorrent_probe import run_infohash_probe, run_magnet_probe
+from app.adapters.google_search_client import run_google_search
 from app.adapters.jackett_client import run_keyword_search
 from app.adapters.tor_lynx_client import run_tor_text_browse
-from app.core.router import route_browse_input, route_probe_input, route_search_input
+from app.adapters.yandex_search_client import run_yandex_search
+from app.core.router import (
+    route_browse_input,
+    route_probe_input,
+    route_search_input,
+    route_websearch_input,
+)
+from app.core.search_models import SearchRequest
+from app.core.search_profiles import apply_use_case
 from app.reporting.json_reporter import save_json_report, to_pretty_json
 from app.reporting.text_reporter import print_adapter_result, print_route_decision
 from app.utils.validators import (
@@ -96,8 +106,50 @@ def run_browse_command(args) -> int:
         reason=decision.reason,
     )
 
-    dry_run = args.dry_run
-    result = run_tor_text_browse(target, dry_run=dry_run)
+    result = run_tor_text_browse(target, dry_run=args.dry_run)
+    print_adapter_result(result)
+    _handle_optional_json_output(result, args)
+    return 0
+
+
+def run_websearch_command(args) -> int:
+    keyword = (args.keyword or "").strip()
+    provider = (args.provider or "").strip().lower()
+
+    if not keyword:
+        print("[ERROR] Web search keyword cannot be empty.")
+        return 1
+
+    decision = route_websearch_input(provider=provider, keyword=keyword)
+    print_route_decision(
+        input_type=decision.input_type,
+        adapter_name=decision.adapter_name,
+        reason=decision.reason,
+    )
+
+    profile = apply_use_case(keyword, args.use_case)
+
+    request = SearchRequest(
+        provider=provider,
+        keyword=profile["keyword"],
+        use_case=args.use_case,
+        site=args.site or profile.get("site"),
+        filetype=args.filetype or profile.get("filetype"),
+        exact_phrase=args.exact_phrase or profile.get("exact_phrase"),
+        exclude_terms=args.exclude or profile.get("exclude_terms", []),
+        additional_terms=(args.add or []) + profile.get("additional_terms", []),
+    )
+
+    if provider == "google":
+        result = run_google_search(request)
+    elif provider == "yandex":
+        result = run_yandex_search(request)
+    elif provider == "baidu":
+        result = run_baidu_search(request)
+    else:
+        print(f"[ERROR] Unsupported provider: {provider}")
+        return 1
+
     print_adapter_result(result)
     _handle_optional_json_output(result, args)
     return 0

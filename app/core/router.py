@@ -46,3 +46,33 @@ def route_browse_input(*, target: str) -> RouteDecision:
         )
 
     raise ValueError("Browse target cannot be empty.")
+
+
+def route_websearch_input(*, provider: str, keyword: str) -> RouteDecision:
+    if not keyword.strip():
+        raise ValueError("Web search keyword cannot be empty.")
+
+    provider = provider.lower().strip()
+
+    if provider == "google":
+        return RouteDecision(
+            input_type="websearch",
+            adapter_name="google_search_client",
+            reason="Google web search provider was selected.",
+        )
+
+    if provider == "yandex":
+        return RouteDecision(
+            input_type="websearch",
+            adapter_name="yandex_search_client",
+            reason="Yandex web search provider was selected.",
+        )
+
+    if provider == "baidu":
+        return RouteDecision(
+            input_type="websearch",
+            adapter_name="baidu_search_client",
+            reason="Baidu web search provider was selected.",
+        )
+
+    raise ValueError(f"Unsupported web search provider: {provider}")

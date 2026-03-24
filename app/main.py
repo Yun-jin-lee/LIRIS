@@ -1,4 +1,9 @@
-from app.cli.commands import run_browse_command, run_probe_command, run_search_command
+from app.cli.commands import (
+    run_browse_command,
+    run_probe_command,
+    run_search_command,
+    run_websearch_command,
+)
 from app.cli.parser import build_parser
 
 
@@ -14,6 +19,9 @@ def main() -> int:
 
     if args.command == "browse":
         return run_browse_command(args)
+
+    if args.command == "websearch":
+        return run_websearch_command(args)
 
     parser.print_help()
     return 1
