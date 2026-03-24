@@ -2,6 +2,7 @@ from app.adapters.bittorrent_probe import run_infohash_probe, run_magnet_probe
 from app.adapters.jackett_client import run_keyword_search
 from app.adapters.tor_lynx_client import run_tor_text_browse
 from app.core.router import route_browse_input, route_probe_input, route_search_input
+from app.reporting.json_reporter import save_json_report, to_pretty_json
 from app.reporting.text_reporter import print_adapter_result, print_route_decision
 from app.utils.validators import (
     extract_btih_from_magnet,
@@ -9,6 +10,16 @@ from app.utils.validators import (
     is_valid_magnet,
     is_valid_tor_target,
 )
+
+
+def _handle_optional_json_output(result: dict, args) -> None:
+    if getattr(args, "json", False):
+        print("[INFO] JSON output:")
+        print(to_pretty_json(result))
+
+    if getattr(args, "output", None):
+        saved_path = save_json_report(result, args.output)
+        print(f"[INFO] JSON report saved to: {saved_path}")
 
 
 def run_probe_command(args) -> int:
@@ -26,6 +37,7 @@ def run_probe_command(args) -> int:
 
         result = run_infohash_probe(args.infohash, filetype=args.filetype)
         print_adapter_result(result)
+        _handle_optional_json_output(result, args)
         return 0
 
     if args.magnet:
@@ -44,6 +56,7 @@ def run_probe_command(args) -> int:
 
         result = run_magnet_probe(args.magnet, btih=btih, filetype=args.filetype)
         print_adapter_result(result)
+        _handle_optional_json_output(result, args)
         return 0
 
     print("[ERROR] No probe input provided.")
