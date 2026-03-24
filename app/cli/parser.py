@@ -32,6 +32,16 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["pdf", "image", "text", "archive"],
         help="Optional file type filter for probe results.",
     )
+    probe_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the adapter result as JSON.",
+    )
+    probe_parser.add_argument(
+        "--output",
+        type=str,
+        help="Optional path to save the result as a JSON file.",
+    )
 
     # search
     search_parser = subparsers.add_parser(
