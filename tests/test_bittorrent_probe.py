@@ -14,6 +14,7 @@ def test_run_infohash_probe_returns_expected_structure():
     assert isinstance(result["files"], list)
     assert len(result["files"]) == 2
     assert result["extra"]["deduplicated"] is True
+    assert "total_score" in result["extra"]
 
 
 def test_run_magnet_probe_returns_expected_structure():
@@ -30,6 +31,7 @@ def test_run_magnet_probe_returns_expected_structure():
     assert isinstance(result["files"], list)
     assert len(result["files"]) == 2
     assert result["extra"]["deduplicated"] is True
+    assert "total_score" in result["extra"]
 
 
 def test_run_infohash_probe_filters_pdf_files():
@@ -47,3 +49,24 @@ def test_run_magnet_probe_filters_archive_files():
 
     assert len(result["files"]) == 1
     assert result["files"][0]["type"] == "archive"
+
+
+def test_run_infohash_probe_adds_tags_and_score():
+    infohash = "0123456789abcdef0123456789abcdef01234567"
+    result = run_infohash_probe(infohash, filetype="pdf")
+
+    file_entry = result["files"][0]
+    assert "tags" in file_entry
+    assert "score" in file_entry
+    assert "document" in file_entry["tags"]
+
+
+def test_run_magnet_probe_adds_tags_and_score():
+    magnet = "magnet:?xt=urn:btih:0123456789ABCDEF0123456789ABCDEF01234567&dn=test"
+    btih = "0123456789ABCDEF0123456789ABCDEF01234567"
+    result = run_magnet_probe(magnet, btih=btih, filetype="archive")
+
+    file_entry = result["files"][0]
+    assert "tags" in file_entry
+    assert "score" in file_entry
+    assert "archive" in file_entry["tags"]
