@@ -96,6 +96,8 @@ def run_browse_command(args) -> int:
         reason=decision.reason,
     )
 
-    result = run_tor_text_browse(target, dry_run=args.dry_run)
+    dry_run = args.dry_run
+    result = run_tor_text_browse(target, dry_run=dry_run)
     print_adapter_result(result)
+    _handle_optional_json_output(result, args)
     return 0
