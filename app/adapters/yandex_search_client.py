@@ -7,6 +7,7 @@ def run_yandex_search(request: SearchRequest) -> dict:
     result = SearchResult(
         status="manual_or_pending",
         provider="yandex",
+        adapter="yandex_search_client",
         use_case=request.use_case,
         query=query,
         manual_search_url=build_yandex_search_url(query),

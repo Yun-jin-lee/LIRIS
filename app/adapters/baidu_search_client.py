@@ -7,6 +7,7 @@ def run_baidu_search(request: SearchRequest) -> dict:
     result = SearchResult(
         status="manual_or_pending",
         provider="baidu",
+        adapter="baidu_search_client",
         use_case=request.use_case,
         query=query,
         manual_search_url=build_baidu_search_url(query),

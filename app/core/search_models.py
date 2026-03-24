@@ -19,6 +19,7 @@ class SearchRequest:
 class SearchResult:
     status: str
     provider: str
+    adapter: str
     use_case: str | None
     query: str
     manual_search_url: str
