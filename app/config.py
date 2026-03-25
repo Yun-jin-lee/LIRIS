@@ -19,6 +19,18 @@ def get_jackett_indexer() -> str:
     return value or "all"
 
 
+def get_qbittorrent_base_url() -> str:
+    return os.getenv("QBITTORRENT_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
+
+
+def get_qbittorrent_username() -> str:
+    return os.getenv("QBITTORRENT_USERNAME", "").strip()
+
+
+def get_qbittorrent_password() -> str:
+    return os.getenv("QBITTORRENT_PASSWORD", "").strip()
+
+
 def get_tor_socks_host() -> str:
     return os.getenv("TOR_SOCKS_HOST", "127.0.0.1").strip() or "127.0.0.1"
 

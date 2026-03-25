@@ -1,3 +1,4 @@
+import xml.etree.ElementTree as ET
 from typing import Any
 
 import requests
@@ -9,10 +10,41 @@ from app.config import (
 )
 
 
+def _parse_torznab_items(xml_text: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        return items
+
+    for item in root.findall(".//item"):
+        title = item.findtext("title")
+        link = item.findtext("link")
+        guid = item.findtext("guid")
+        pubdate = item.findtext("pubDate")
+
+        enclosure = item.find("enclosure")
+        enclosure_url = enclosure.get("url") if enclosure is not None else None
+        enclosure_length = enclosure.get("length") if enclosure is not None else None
+        enclosure_type = enclosure.get("type") if enclosure is not None else None
+
+        items.append(
+            {
+                "title": title,
+                "link": link,
+                "guid": guid,
+                "pubdate": pubdate,
+                "enclosure_url": enclosure_url,
+                "enclosure_length": enclosure_length,
+                "enclosure_type": enclosure_type,
+            }
+        )
+
+    return items
+
+
 def run_keyword_search(keyword: str) -> dict[str, Any]:
-    """
-    Run a basic keyword search against a Jackett instance using the Torznab API.
-    """
     base_url = get_jackett_base_url()
     api_key = get_jackett_api_key()
     indexer = get_jackett_indexer()
@@ -45,13 +77,17 @@ def run_keyword_search(keyword: str) -> dict[str, Any]:
             "message": f"Jackett request failed: {exc}",
         }
 
+    parsed_items = _parse_torznab_items(response.text)
+
     return {
         "status": "ok",
         "input_type": "keyword",
         "value": keyword,
         "adapter": "jackett_client",
-        "message": "Jackett search request completed successfully.",
+        "message": "Jackett search completed successfully.",
         "request_url": response.url,
         "http_status": response.status_code,
+        "result_count": len(parsed_items),
+        "items": parsed_items[:10],
         "response_preview": response.text[:500],
     }

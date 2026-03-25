@@ -39,6 +39,11 @@ def print_adapter_result(result: dict) -> None:
         print("[INFO] Response preview:")
         print(result.get("response_preview"))
 
+    if result.get("items"):
+        print("[INFO] Jackett items:")
+        for item in result["items"]:
+            print(f" - {item}")
+
     if result.get("lynx_binary"):
         print(f"[INFO] Lynx binary: {result.get('lynx_binary')}")
 
