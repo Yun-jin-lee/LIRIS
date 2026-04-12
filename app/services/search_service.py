@@ -19,7 +19,7 @@ def build_search_url(keyword: str, provider: str) -> str:
     raise ValueError("Direct URL building is only used for ddg and baidu.")
 
 
-def search_with_serpapi(keyword: str, provider: str) -> str:
+def get_serpapi_results(keyword: str, provider: str, max_results: int = 5) -> list[dict]:
     config = load_config()
 
     if not config.serpapi_api_key:
@@ -33,7 +33,6 @@ def search_with_serpapi(keyword: str, provider: str) -> str:
             "q": keyword,
             "api_key": config.serpapi_api_key,
         }
-
     elif provider == "yandex":
         params = {
             "engine": "yandex",
@@ -42,9 +41,8 @@ def search_with_serpapi(keyword: str, provider: str) -> str:
             "lang": "en",
             "api_key": config.serpapi_api_key,
         }
-
     else:
-        raise ValueError("SerpApi search supports only google and yandex.")
+        raise ValueError("SerpApi supports only google and yandex in this flow.")
 
     response = requests.get(
         "https://serpapi.com/search.json",
@@ -56,14 +54,56 @@ def search_with_serpapi(keyword: str, provider: str) -> str:
     data = response.json()
     organic_results = data.get("organic_results", [])
 
-    if not organic_results:
-        raise RuntimeError(f"No {provider} results returned by SerpApi.")
+    cleaned_results = []
+    for result in organic_results[:max_results]:
+        title = result.get("title") or "<no title>"
+        link = result.get("link")
+        snippet = result.get("snippet") or ""
 
-    first_result = organic_results[0].get("link")
-    if not first_result:
-        raise RuntimeError(f"Top {provider} result did not contain a usable link.")
+        if not link:
+            continue
 
-    return first_result
+        cleaned_results.append(
+            {
+                "title": title,
+                "link": link,
+                "snippet": snippet,
+            }
+        )
+
+    if not cleaned_results:
+        raise RuntimeError(f"No usable {provider} results returned by SerpApi.")
+
+    return cleaned_results
+
+
+def choose_result(results: list[dict]) -> str:
+    print()
+    print("[OK] Search results")
+    print()
+
+    for idx, result in enumerate(results, start=1):
+        print(f"[{idx}] {result['title']}")
+        print(f"    {result['link']}")
+        if result["snippet"]:
+            print(f"    {result['snippet']}")
+        print()
+
+    while True:
+        choice = input("Choose result number (or q to quit): ").strip().lower()
+
+        if choice == "q":
+            raise KeyboardInterrupt
+
+        if not choice.isdigit():
+            print("[ERROR] Please enter a number or q.")
+            continue
+
+        number = int(choice)
+        if 1 <= number <= len(results):
+            return results[number - 1]["link"]
+
+        print(f"[ERROR] Choose a number between 1 and {len(results)}.")
 
 
 def handle_search(user_input: str, provider: str = "ddg", dump: bool = False) -> int:
@@ -76,8 +116,12 @@ def handle_search(user_input: str, provider: str = "ddg", dump: bool = False) ->
     if provider in {"google", "yandex"}:
         print("[INFO] External provider selected through SerpApi.")
         print("[INFO] This may reduce privacy compared to the default provider.")
-        target_url = search_with_serpapi(user_input, provider)
-        print(f"[INFO] Top result URL: {target_url}")
+
+        results = get_serpapi_results(user_input, provider)
+        target_url = choose_result(results)
+
+        print()
+        print(f"[INFO] Opening selected result: {target_url}")
         return open_with_lynx(target_url, dump=dump)
 
     search_url = build_search_url(user_input, provider)
