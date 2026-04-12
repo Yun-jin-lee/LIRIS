@@ -28,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     search_parser = subparsers.add_parser(
         "search",
-        help="Search a keyword through a provider and open the search page in Lynx.",
+        help="Search a keyword through a provider and open the result in Lynx.",
     )
     search_parser.add_argument(
         "input",
@@ -43,7 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     search_parser.add_argument(
         "--dump",
         action="store_true",
-        help="Render search page as plain text instead of interactive mode.",
+        help="Render the result page as plain text instead of interactive mode.",
     )
 
     probe_parser = subparsers.add_parser(
