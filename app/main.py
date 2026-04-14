@@ -28,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     search_parser = subparsers.add_parser(
         "search",
-        help="Search a keyword through a provider and open the result in Lynx.",
+        help="Search through the local SearXNG backend and open the chosen result in Lynx.",
     )
     search_parser.add_argument(
         "input",
@@ -36,14 +36,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     search_parser.add_argument(
         "--provider",
-        choices=["ddg", "google", "yandex", "baidu"],
-        default="ddg",
-        help="Search provider to use. Default: ddg",
+        choices=["all", "google", "yandex", "baidu"],
+        default="all",
+        help="Search provider filter inside SearXNG. Default: all",
     )
     search_parser.add_argument(
         "--dump",
         action="store_true",
-        help="Render the result page as plain text instead of interactive mode.",
+        help="Render the chosen result page as plain text instead of interactive mode.",
     )
 
     probe_parser = subparsers.add_parser(

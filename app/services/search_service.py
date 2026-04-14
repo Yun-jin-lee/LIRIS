@@ -1,5 +1,3 @@
-from urllib.parse import quote_plus
-
 import requests
 
 from app.adapters.lynx_client import open_with_lynx
@@ -9,95 +7,68 @@ from app.config import load_config
 PAGE_SIZE = 5
 
 
-def build_search_url(keyword: str, provider: str) -> str:
-    query = quote_plus(keyword)
-    provider = provider.lower()
-
-    if provider == "ddg":
-        return f"https://lite.duckduckgo.com/lite/?q={query}"
-
-    if provider == "baidu":
-        return f"https://www.baidu.com/s?wd={query}"
-
-    raise ValueError("Direct URL building is only used for ddg and baidu.")
-
-
-def get_serpapi_results(keyword: str, provider: str, page: int = 1) -> list[dict]:
+def get_searxng_results(keyword: str, provider: str = "all", page: int = 1) -> list[dict]:
     config = load_config()
 
-    if not config.serpapi_api_key:
-        raise ValueError("SERPAPI_API_KEY is not set in .env.")
+    params = {
+        "q": keyword,
+        "format": "json",
+        "pageno": page,
+    }
 
-    provider = provider.lower()
-
-    if provider == "google":
-        params = {
-            "engine": "google",
-            "q": keyword,
-            "start": (page - 1) * PAGE_SIZE,
-            "num": PAGE_SIZE,
-            "api_key": config.serpapi_api_key,
-        }
-
-    elif provider == "yandex":
-        params = {
-            "engine": "yandex",
-            "text": keyword,
-            "p": page - 1,
-            "yandex_domain": "yandex.com",
-            "lang": "en",
-            "api_key": config.serpapi_api_key,
-        }
-
-    else:
-        raise ValueError("SerpApi supports only google and yandex in this flow.")
+    if provider != "all":
+        params["engines"] = provider
 
     response = requests.get(
-        "https://serpapi.com/search.json",
+        f"{config.searxng_url}/search",
         params=params,
         timeout=20,
     )
     response.raise_for_status()
 
     data = response.json()
-    organic_results = data.get("organic_results", [])
+    raw_results = data.get("results", [])
 
-    results: list[dict] = []
-    for item in organic_results[:PAGE_SIZE]:
-        link = item.get("link")
-        if not link:
+    cleaned_results: list[dict] = []
+    for item in raw_results[:PAGE_SIZE]:
+        url = item.get("url")
+        if not url:
             continue
 
-        results.append(
+        cleaned_results.append(
             {
                 "title": item.get("title") or "<no title>",
-                "link": link,
-                "snippet": item.get("snippet") or "",
+                "link": url,
+                "snippet": item.get("content") or "",
+                "engine": item.get("engine") or "",
             }
         )
 
-    return results
+    return cleaned_results
 
 
-def choose_serpapi_result(keyword: str, provider: str) -> str:
+def choose_searxng_result(keyword: str, provider: str) -> str:
     page = 1
 
     while True:
-        results = get_serpapi_results(keyword, provider, page=page)
+        results = get_searxng_results(keyword, provider=provider, page=page)
 
         if not results:
             if page == 1:
-                raise RuntimeError(f"No usable {provider} results returned.")
+                raise RuntimeError(f"No usable results returned for provider '{provider}'.")
             print("[INFO] No more results.")
             page -= 1
             continue
 
         print()
-        print(f"[OK] {provider.capitalize()} results - page {page}")
+        print(f"[OK] SearXNG results - page {page}")
+        if provider != "all":
+            print(f"[INFO] Engine filter: {provider}")
         print()
 
         for idx, result in enumerate(results, start=1):
-            print(f"[{idx}] {result['title']}")
+            engine_label = f" [{result['engine']}]" if result["engine"] else ""
+            print(f"[{idx}] {result['title']}{engine_label}")
             print(f"    {result['link']}")
             if result["snippet"]:
                 print(f"    {result['snippet']}")
@@ -128,28 +99,15 @@ def choose_serpapi_result(keyword: str, provider: str) -> str:
         print("[ERROR] Invalid choice.")
 
 
-def handle_search(user_input: str, provider: str = "ddg", dump: bool = False) -> int:
-    provider = provider.lower()
-
+def handle_search(user_input: str, provider: str = "all", dump: bool = False) -> int:
     print("[OK] Keyword detected")
-    print(f"[INFO] Provider: {provider}")
+    print("[INFO] Provider: searxng")
     print(f"[INFO] Search query: {user_input}")
+    if provider != "all":
+        print(f"[INFO] Engine filter: {provider}")
 
-    if provider in {"google", "yandex"}:
-        print("[INFO] External provider selected through SerpApi.")
-        print("[INFO] This may reduce privacy compared to the default provider.")
+    target_url = choose_searxng_result(user_input, provider)
 
-        target_url = choose_serpapi_result(user_input, provider)
-
-        print()
-        print(f"[INFO] Opening selected result: {target_url}")
-        return open_with_lynx(target_url, dump=dump)
-
-    search_url = build_search_url(user_input, provider)
-    print(f"[INFO] Search URL: {search_url}")
-
-    if provider != "ddg":
-        print("[INFO] External provider selected.")
-        print("[INFO] This may reduce privacy and may be blocked by the provider.")
-
-    return open_with_lynx(search_url, dump=dump)
+    print()
+    print(f"[INFO] Opening selected result: {target_url}")
+    return open_with_lynx(target_url, dump=dump)
