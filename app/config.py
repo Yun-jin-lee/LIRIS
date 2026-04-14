@@ -1,43 +1,25 @@
 import os
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
-
 
 load_dotenv()
 
 
-def get_jackett_base_url() -> str:
-    return os.getenv("JACKETT_BASE_URL", "http://127.0.0.1:9117").rstrip("/")
+@dataclass
+class AppConfig:
+    lynx_bin: str
+    qbittorrent_url: str
+    qbittorrent_username: str
+    qbittorrent_password: str
+    searxng_url: str
 
 
-def get_jackett_api_key() -> str:
-    return os.getenv("JACKETT_API_KEY", "").strip()
-
-
-def get_jackett_indexer() -> str:
-    value = os.getenv("JACKETT_INDEXER", "all").strip()
-    return value or "all"
-
-
-def get_qbittorrent_base_url() -> str:
-    return os.getenv("QBITTORRENT_BASE_URL", "http://127.0.0.1:8080").rstrip("/")
-
-
-def get_qbittorrent_username() -> str:
-    return os.getenv("QBITTORRENT_USERNAME", "").strip()
-
-
-def get_qbittorrent_password() -> str:
-    return os.getenv("QBITTORRENT_PASSWORD", "").strip()
-
-
-def get_tor_socks_host() -> str:
-    return os.getenv("TOR_SOCKS_HOST", "127.0.0.1").strip() or "127.0.0.1"
-
-
-def get_tor_socks_port() -> str:
-    return os.getenv("TOR_SOCKS_PORT", "9050").strip() or "9050"
-
-
-def get_lynx_binary() -> str:
-    return os.getenv("LYNX_BINARY", "lynx").strip() or "lynx"
+def load_config() -> AppConfig:
+    return AppConfig(
+        lynx_bin=os.getenv("LYNX_BIN", "lynx"),
+        qbittorrent_url=os.getenv("QBITTORRENT_URL", "http://localhost:8080").rstrip("/"),
+        qbittorrent_username=os.getenv("QBITTORRENT_USERNAME", "admin"),
+        qbittorrent_password=os.getenv("QBITTORRENT_PASSWORD", "adminadmin"),
+        searxng_url=os.getenv("SEARXNG_URL", "http://localhost:8888").rstrip("/"),
+    )

@@ -1,125 +1,46 @@
-import os
-import time
-from typing import Any
+from __future__ import annotations
 
 import requests
 
-from app.config import (
-    get_qbittorrent_base_url,
-    get_qbittorrent_password,
-    get_qbittorrent_username,
-)
+from app.config import load_config
 
 
 class QBittorrentClient:
     def __init__(self) -> None:
-        self.base_url = get_qbittorrent_base_url()
-        self.username = get_qbittorrent_username()
-        self.password = get_qbittorrent_password()
+        config = load_config()
+        self.base_url = config.qbittorrent_url.rstrip("/")
+        self.username = config.qbittorrent_username
+        self.password = config.qbittorrent_password
         self.session = requests.Session()
 
     def login(self) -> None:
-        url = f"{self.base_url}/api/v2/auth/login"
         response = self.session.post(
-            url,
-            data={"username": self.username, "password": self.password},
+            f"{self.base_url}/api/v2/auth/login",
+            data={
+                "username": self.username,
+                "password": self.password,
+            },
             timeout=15,
         )
         response.raise_for_status()
 
         if response.text.strip() != "Ok.":
-            raise RuntimeError("qBittorrent login failed.")
+            raise RuntimeError("qBittorrent login failed. Check credentials in .env.")
 
-    def add_magnet(self, magnet_uri: str, paused: bool = True) -> None:
-        url = f"{self.base_url}/api/v2/torrents/add"
+    def add_magnet(self, magnet: str) -> None:
+        self.login()
         response = self.session.post(
-            url,
-            data={
-                "urls": magnet_uri,
-                "paused": "true" if paused else "false",
-            },
-            timeout=20,
+            f"{self.base_url}/api/v2/torrents/add",
+            data={"urls": magnet},
+            timeout=15,
         )
         response.raise_for_status()
 
-    def add_torrent_file(self, torrent_file_path: str, paused: bool = True) -> None:
-        if not os.path.exists(torrent_file_path):
-            raise FileNotFoundError(f".torrent file not found: {torrent_file_path}")
-
-        url = f"{self.base_url}/api/v2/torrents/add"
-        with open(torrent_file_path, "rb") as torrent_file:
-            response = self.session.post(
-                url,
-                data={
-                    "paused": "true" if paused else "false",
-                },
-                files={
-                    "torrents": (
-                        os.path.basename(torrent_file_path),
-                        torrent_file,
-                        "application/x-bittorrent",
-                    )
-                },
-                timeout=30,
-            )
-        response.raise_for_status()
-
-    def list_torrents(self) -> list[dict[str, Any]]:
-        url = f"{self.base_url}/api/v2/torrents/info"
-        response = self.session.get(url, timeout=20)
-        response.raise_for_status()
-        return response.json()
-
-    def list_files(self, torrent_hash: str) -> list[dict[str, Any]]:
-        url = f"{self.base_url}/api/v2/torrents/files"
-        response = self.session.get(url, params={"hash": torrent_hash}, timeout=20)
-        response.raise_for_status()
-        return response.json()
-
-    def delete_torrent(self, torrent_hash: str, delete_files: bool = False) -> None:
-        url = f"{self.base_url}/api/v2/torrents/delete"
-        response = self.session.post(
-            url,
-            data={
-                "hashes": torrent_hash,
-                "deleteFiles": "true" if delete_files else "false",
-            },
-            timeout=20,
+    def list_torrents(self) -> list[dict]:
+        self.login()
+        response = self.session.get(
+            f"{self.base_url}/api/v2/torrents/info",
+            timeout=15,
         )
         response.raise_for_status()
-
-    def find_torrent_by_btih(
-        self,
-        btih: str,
-        retries: int = 10,
-        delay: float = 1.5,
-    ) -> dict[str, Any] | None:
-        btih_lower = btih.lower()
-
-        for _ in range(retries):
-            torrents = self.list_torrents()
-            for torrent in torrents:
-                torrent_hash = str(torrent.get("hash", "")).lower()
-                if torrent_hash == btih_lower:
-                    return torrent
-            time.sleep(delay)
-
-        return None
-
-    def find_torrent_by_name(
-        self,
-        name_fragment: str,
-        retries: int = 10,
-        delay: float = 1.5,
-    ) -> dict[str, Any] | None:
-        needle = name_fragment.lower()
-
-        for _ in range(retries):
-            torrents = self.list_torrents()
-            for torrent in torrents:
-                torrent_name = str(torrent.get("name", "")).lower()
-                if needle and needle in torrent_name:
-                    return torrent
-            time.sleep(delay)
-
-        return None
+        return response.json()
