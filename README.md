@@ -42,10 +42,15 @@ Search the web via SearXNG and select a link to open in Lynx:
 python main.py search "query string" --provider google
 ```
 
-Show unique first-page results from multiple SearXNG engines:
+Show unique first-page results from multiple SearXNG engines with formatted tables:
 ```bash
 python main.py search "query string" --unique
 ```
+
+This compares results across Google, Yandex, and Baidu, displaying:
+- All results from each engine in a formatted table
+- Unique results (found by only one engine) in separate tables
+- Common results (found by multiple engines) in a shared table
 
 Show only the delta summary with unique engine-only results and common shared hits:
 ```bash

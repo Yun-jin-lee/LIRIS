@@ -1,5 +1,6 @@
 import requests
 from urllib.parse import urlparse, urlunparse
+from tabulate import tabulate
 
 from app.adapters.lynx_client import open_with_lynx
 from app.config import load_config
@@ -113,35 +114,64 @@ def print_search_delta(keyword: str, engine_results: dict[str, list[dict]]) -> N
     print(f"[INFO] Each engine first page size: {UNIQUE_PAGE_SIZE}")
     print()
 
+    # Display all results per engine
     for engine, results in engine_results.items():
-        print(f"[ENGINE] {engine} ({len(results)} results)")
+        print(f"\n{'='*80}")
+        print(f"[ENGINE] {engine.upper()} ({len(results)} results)")
+        print(f"{'='*80}")
+        table_data = []
         for idx, result in enumerate(results, start=1):
-            print(f"  {idx}. {result['title']}")
-            print(f"       {result['link']}")
-            if result["snippet"]:
-                print(f"       {result['snippet']}")
+            snippet = result.get("snippet", "")
+            if snippet and len(snippet) > 60:
+                snippet = snippet[:57] + "..."
+            table_data.append([
+                idx,
+                result['title'],
+                result['link'],
+                snippet
+            ])
+        print(tabulate(table_data, headers=["#", "Title", "URL", "Snippet"], tablefmt="grid", maxcolwidths=[3, 25, 40, 30]))
         print()
 
+    # Display unique results per engine
+    print(f"\n{'='*80}")
+    print("[UNIQUE RESULTS - Engine-Specific Hits]")
+    print(f"{'='*80}")
     for engine, unique_results in unique_by_engine.items():
-        print(f"[UNIQUE] Results only found by {engine} ({len(unique_results)} items)")
+        print(f"\n[{engine.upper()}] {len(unique_results)} unique result(s)")
         if unique_results:
+            table_data = []
             for idx, result in enumerate(unique_results, start=1):
-                print(f"  {idx}. {result['title']}")
-                print(f"       {result['link']}")
-            print()
+                table_data.append([
+                    idx,
+                    result['title'],
+                    result['link']
+                ])
+            print(tabulate(table_data, headers=["#", "Title", "URL"], tablefmt="simple"))
         else:
-            print("  None\n")
+            print("  (none)")
+        print()
 
+    # Display common results
     if shared_results:
-        print(f"[COMMON] Results found by multiple engines ({len(shared_results)} items)")
+        print(f"{'='*80}")
+        print(f"[COMMON RESULTS] Found by multiple engines ({len(shared_results)} item(s))")
+        print(f"{'='*80}")
+        table_data = []
         for engines, result in shared_results:
             engines_label = ", ".join(sorted(engines))
-            print(f"  - {result['title']} [{engines_label}]")
-            print(f"       {result['link']}")
+            table_data.append([
+                result['title'],
+                result['link'],
+                engines_label
+            ])
+        print(tabulate(table_data, headers=["Title", "URL", "Engines"], tablefmt="grid"))
         print()
     else:
-        print("[COMMON] No overlapping results found among engines.")
-        print()
+        print(f"\n{'='*80}")
+        print("[COMMON RESULTS] No overlapping results found among engines.")
+        print(f"{'='*80}\n")
+
 
 
 def print_search_delta_summary(keyword: str, engine_results: dict[str, list[dict]]) -> None:
